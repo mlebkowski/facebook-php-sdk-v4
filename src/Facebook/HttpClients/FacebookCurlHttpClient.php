@@ -65,7 +65,7 @@ class FacebookCurlHttpClient implements FacebookHttpable
   /**
    * @var FacebookCurl Procedural curl as object
    */
-  protected $facebookCurl;
+  protected static $facebookCurl;
 
   /**
    * @var boolean If IPv6 should be disabled
@@ -87,14 +87,14 @@ class FacebookCurlHttpClient implements FacebookHttpable
    */
   public function __construct(FacebookCurl $facebookCurl = null)
   {
-    $this->facebookCurl = $facebookCurl ?: new FacebookCurl();
+    self::$facebookCurl = $facebookCurl ?: new FacebookCurl();
     self::$disableIPv6 = self::$disableIPv6 ?: false;
   }
 
   /**
    * Disable IPv6 resolution
    */
-  public static function disableIPv6()
+  public function disableIPv6()
   {
     self::$disableIPv6 = true;
   }
@@ -195,8 +195,8 @@ class FacebookCurlHttpClient implements FacebookHttpable
       $options[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
     }
 
-    $this->facebookCurl->init();
-    $this->facebookCurl->setopt_array($options);
+    self::$facebookCurl->init();
+    self::$facebookCurl->setopt_array($options);
   }
 
   /**
@@ -204,7 +204,7 @@ class FacebookCurlHttpClient implements FacebookHttpable
    */
   public function closeConnection()
   {
-    $this->facebookCurl->close();
+    self::$facebookCurl->close();
   }
 
   /**
@@ -213,9 +213,9 @@ class FacebookCurlHttpClient implements FacebookHttpable
   public function tryToSendRequest()
   {
     $this->sendRequest();
-    $this->curlErrorMessage = $this->facebookCurl->error();
-    $this->curlErrorCode = $this->facebookCurl->errno();
-    $this->responseHttpStatusCode = $this->facebookCurl->getinfo(CURLINFO_HTTP_CODE);
+    $this->curlErrorMessage = self::$facebookCurl->error();
+    $this->curlErrorCode = self::$facebookCurl->errno();
+    $this->responseHttpStatusCode = self::$facebookCurl->getinfo(CURLINFO_HTTP_CODE);
   }
 
   /**
@@ -223,7 +223,7 @@ class FacebookCurlHttpClient implements FacebookHttpable
    */
   public function sendRequest()
   {
-    $this->rawResponse = $this->facebookCurl->exec();
+    $this->rawResponse = self::$facebookCurl->exec();
   }
 
   /**
@@ -297,10 +297,10 @@ class FacebookCurlHttpClient implements FacebookHttpable
    */
   private function getHeaderSize()
   {
-    $headerSize = $this->facebookCurl->getinfo(CURLINFO_HEADER_SIZE);
+    $headerSize = self::$facebookCurl->getinfo(CURLINFO_HEADER_SIZE);
     // This corrects a Curl bug where header size does not account
     // for additional Proxy headers.
-    if ( $this->needsCurlProxyFix() ) {
+    if ( self::needsCurlProxyFix() ) {
       // Additional way to calculate the request body size.
       if (preg_match('/Content-Length: (\d+)/', $this->rawResponse, $m)) {
           $headerSize = mb_strlen($this->rawResponse) - $m[1];
@@ -318,9 +318,9 @@ class FacebookCurlHttpClient implements FacebookHttpable
    *
    * @return boolean
    */
-  private function needsCurlProxyFix()
+  private static function needsCurlProxyFix()
   {
-    $ver = $this->facebookCurl->version();
+    $ver = self::$facebookCurl->version();
     $version = $ver['version_number'];
 
     return $version < self::CURL_PROXY_QUIRK_VER;
